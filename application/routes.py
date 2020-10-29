@@ -1,7 +1,7 @@
 from flask import render_template, url_for, flash, redirect, request
-from flaskblog import app, db, bcrypt
-from flaskblog.forms import RegistrationForm, LoginForm
-from flaskblog.models import User, Post
+from application import app, db, bcrypt
+from application.forms import RegistrationForm, LoginForm
+from application.models import User, Post
 from flask_login import login_user, current_user, logout_user, login_required
 import plotly
 import plotly.graph_objs as go
@@ -31,7 +31,7 @@ posts = [
 
 
 def create_plot():
-    path_to_file = "flaskblog/static/" + current_user.username + "/data.csv"
+    path_to_file = "application/static/" + current_user.username + "/data.csv"
     loaded_df = pd.read_csv(path_to_file)
     data = [
         go.Scatter(
@@ -49,17 +49,32 @@ def create_plot():
 def home():
     return render_template('home.html', title='home') 
 
+@app.route("/my_patients")
+def my_patients():
+    if current_user.is_doctor:
+        return render_template('my_patients.html', title='My Patients')
+    next_page = request.args.get('next')
+    return redirect(next_page) if next_page else redirect(url_for('home'))
+
+@app.route("/new_patient")
+def new_patient():
+    if current_user.is_doctor:
+        return render_template('new_patient.html', title='New Patient')
+    next_page = request.args.get('next')
+    return redirect(next_page) if next_page else redirect(url_for('home'))
+
 @app.route("/graphs", methods=['GET', 'POST'])
 @login_required
 def graphs():
-    bar = create_plot()
-    return render_template('graphs.html', plot = bar)
+    if current_user.is_doctor == False:
+        bar = create_plot()
+        return render_template('graphs.html', plot = bar)
+    next_page = request.args.get('next')
+    return redirect(next_page) if next_page else redirect(url_for('home'))
 
-
-@app.route("/settings")
-def settings():
-    return render_template('settings.html', title='About')
-
+@app.route("/help")
+def help():
+    return render_template('help.html', title='help') 
 
 @app.route("/register", methods=['GET', 'POST'])
 def register():

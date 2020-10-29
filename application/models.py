@@ -1,5 +1,5 @@
 from datetime import datetime
-from flaskblog import db, login_manager
+from application import db, login_manager
 from flask_login import UserMixin
 
 
@@ -7,6 +7,9 @@ from flask_login import UserMixin
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+doctors_patients = db.Table('doctors_patients',
+    db.Column('patient_id', db.Integer, db.ForeignKey('user.id')),
+    db.Column('doctor_id', db.Integer, db.ForeignKey('user.id')))
 
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
@@ -15,7 +18,12 @@ class User(db.Model, UserMixin):
     image_file = db.Column(db.String(20), nullable=False, default='default.jpg')
     password = db.Column(db.String(60), nullable=False)
     posts = db.relationship('Post', backref='author', lazy=True)
-
+    is_doctor = db.Column(db.Boolean, default=False, nullable=False)
+    patients = db.relationship(
+        'User', secondary=doctors_patients,
+        primaryjoin=(doctors_patients.c.patient_id == id),
+        secondaryjoin=(doctors_patients.c.doctor_id == id),
+        backref=db.backref('doctors_patients', lazy='dynamic'), lazy='dynamic')
     def __repr__(self):
         return f"User('{self.username}', '{self.email}', '{self.image_file}')"
 

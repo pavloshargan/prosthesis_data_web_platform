@@ -26,8 +26,15 @@
           </button>
           <div class="collapse navbar-collapse" id="navbarToggle">
             <div class="navbar-nav mr-auto">
-              <a class="nav-item nav-link" href="{{ url_for('settings') }}">Prosthesis Settings</a>
-              <a class="nav-item nav-link" href="{{ url_for('graphs') }}">Graphs</a>
+              {% if current_user.is_authenticated %}
+              {% if current_user.is_doctor %}
+              <a class="nav-item nav-link" href="{{ url_for('my_patients') }}">My Patients</a>
+              <a class="nav-item nav-link" href="{{ url_for('new_patient') }}">New Patient</a>
+              {% else %}
+              <a class="nav-item nav-link" href="{{ url_for('graphs') }}">My Data</a>
+              {% endif %}
+              {% endif %}
+              
 
             </div>
             <!-- Navbar Right Side -->
@@ -37,8 +44,8 @@
                 <a class="nav-item nav-link" href="{{ url_for('logout') }}">Logout</a>
               {% else %}
                 <a class="nav-item nav-link" href="{{ url_for('login') }}">Login</a>
-                <a class="nav-item nav-link" href="{{ url_for('register') }}">Register</a>
               {% endif %}
+              <a class="nav-item nav-link" href="{{ url_for('help') }}">Help</a>
             </div>
           </div>
         </div>
