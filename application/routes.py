@@ -5,44 +5,55 @@ from application.models import User, Post
 from flask_login import login_user, current_user, logout_user, login_required
 import plotly
 import plotly.graph_objs as go
-
 import pandas as pd
 import numpy as np
 import json
+import os
+import shutil
 from os.path import join, dirname, realpath
+from werkzeug.utils import secure_filename
 
-posts = [
-    {
-        'author': 'Corey Schafer',
-        'title': 'Blog Post 1',
-        'content': 'First post content',
-        'date_posted': 'April 20, 2018'
-    },
-    {
-        'author': 'Jane Doe',
-        'title': 'Blog Post 2',
-        'content': 'Second post content',
-        'date_posted': 'April 21, 2018'
-    }
-]
+ALLOWED_EXTENSIONS = {'csv'}
 
-
- 
-
-
-def create_plot():
-    path_to_file = "application/static/" + current_user.username + "/data.csv"
+def create_plot(filename):
+    path_to_file = os.path.join(app.config['UPLOAD_FOLDER'], current_user.username, filename)
     loaded_df = pd.read_csv(path_to_file)
+
+    # Convert Time to a readable format if necessary
+    loaded_df['Time'] = pd.to_datetime(loaded_df['Time'], unit='ms')
+
+    # Creating a plot for each acceleration component
     data = [
         go.Scatter(
-            x=loaded_df['Time'], # assign x as the dataframe column 'x'
-            y=loaded_df['Acc_x']
+            x=loaded_df['Time'], 
+            y=loaded_df['Acc_x'],
+            mode='lines',
+            name='Acc_x'
+        ),
+        go.Scatter(
+            x=loaded_df['Time'], 
+            y=loaded_df['Acc_y'],
+            mode='lines',
+            name='Acc_y'
+        ),
+        go.Scatter(
+            x=loaded_df['Time'], 
+            y=loaded_df['Acc_z'],
+            mode='lines',
+            name='Acc_z'
         )
     ]
 
-    graphJSON = json.dumps(data, cls=plotly.utils.PlotlyJSONEncoder)
+    layout = go.Layout(
+        title='Acceleration Data',
+        xaxis=dict(title='Time'),
+        yaxis=dict(title='Acceleration')
+    )
+
+    graphJSON = json.dumps({'data': data, 'layout': layout}, cls=plotly.utils.PlotlyJSONEncoder)
 
     return graphJSON
+
 
 @app.route("/")
 @app.route("/home")
@@ -63,14 +74,55 @@ def new_patient():
     next_page = request.args.get('next')
     return redirect(next_page) if next_page else redirect(url_for('home'))
 
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+from flask import render_template, request, redirect, url_for
+from flask_login import login_required, current_user
+from werkzeug.utils import secure_filename
+import os
+import shutil
 @app.route("/graphs", methods=['GET', 'POST'])
 @login_required
 def graphs():
-    if current_user.is_doctor == False:
-        bar = create_plot()
-        return render_template('graphs.html', plot = bar)
-    next_page = request.args.get('next')
-    return redirect(next_page) if next_page else redirect(url_for('home'))
+    if current_user.is_doctor:
+        next_page = request.args.get('next')
+        return redirect(next_page) if next_page else redirect(url_for('home'))
+
+    user_folder = os.path.join(app.config['UPLOAD_FOLDER'], current_user.username)
+
+    # Create user directory if it doesn't exist and copy the sample file
+    if not os.path.exists(user_folder):
+        os.makedirs(user_folder)
+        sample_file_path = os.path.join(app.config['UPLOAD_FOLDER'], 'sample_data.csv')
+        shutil.copy(sample_file_path, user_folder)
+
+    files = os.listdir(user_folder)
+
+    # Initialize selected_file variable
+    selected_file = request.form.get('selected_file', files[0] if files else None)
+
+    bar = None
+    if request.method == 'POST':
+        if 'file' in request.files:
+            file = request.files['file']
+            if file and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                file.save(os.path.join(user_folder, filename))
+                return redirect(url_for('graphs'))
+            selected_file = files[0] if files else None  # Reset selected file after upload
+        elif 'selected_file' in request.form:
+            selected_file = request.form['selected_file']
+            if selected_file in files:
+                bar = create_plot(selected_file)
+
+    if not bar and selected_file:
+        bar = create_plot(selected_file)
+
+    return render_template('graphs.html', files=files, selected_file=selected_file, plot=bar)
+
+
 
 @app.route("/help")
 def help():

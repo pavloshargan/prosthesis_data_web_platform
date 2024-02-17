@@ -14,6 +14,11 @@ bcrypt = Bcrypt(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 login_manager.login_message_category = 'info'
+
+UPLOAD_FOLDER = 'application/uploads'
+ALLOWED_EXTENSIONS = {'csv'}
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
 from application import bcrypt
 
 class MyModelView(ModelView):
@@ -25,5 +30,13 @@ class MyModelView(ModelView):
 from application.models import *
 admin = Admin(app)
 admin.add_view(MyModelView(User, db.session))
+
+# Database initialization function
+def create_database():
+    with app.app_context():
+        db.create_all()
+
+# Call the function to initialize the database
+create_database()
 
 from application import routes

@@ -1,12 +1,32 @@
 {% extends "layout.html" %}
 {% block content %}
 <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js"></script>
 
+<!-- File Upload Form -->
+<form method=post enctype=multipart/form-data>
+    <input type=file name=file>
+    <input type=submit value=Upload>
+</form>
+
+<!-- File Selection Dropdown -->
+<form method=post>
+    <select name="selected_file">
+        {% for file in files %}
+            <option value="{{ file }}" {% if file == selected_file %}selected{% endif %}>
+                {{ file }}
+            </option>
+        {% endfor %}
+    </select>
+    <input type="submit" value="Load Data">
+</form>
+
+<!-- Graph Display -->
+{% if plot %}
 <div class="chart" id="bargraph">
     <script>
         var graphs = {{plot | safe}};
         Plotly.plot('bargraph',graphs,{});
     </script>
 </div>
+{% endif %}
 {% endblock content %}
