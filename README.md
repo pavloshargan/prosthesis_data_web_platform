@@ -1,6 +1,6 @@
 
 
-# Prosthesis Data Web Platform (Flask + Plotly)
+# Prothesis Data Web Platform (Flask + Plotly)
 
 This project is a PoC of a data collection platform for time-series data. Features include:
 
